@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data BIO Dashboard</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; background: #eef1f5; }
+.header { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+input, select { padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+.card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: 0.2s; min-height: 320px; display: flex; flex-direction: column; justify-content: space-between; }
+.card img { width: 100%; border-radius: 12px; height: 140px; object-fit: cover; background: #ddd; }
+.name { font-size: 19px; font-weight: bold; text-align: center; margin-top: 10px; }
+.small { text-align: center; margin-top: 5px; font-size: 13px; }
+.badge-blue { color: white; background: #007bff; padding: 4px 10px; border-radius: 8px; font-size: 12px; }
+.badge-red { color: white; background: #dc3545; padding: 4px 10px; border-radius: 8px; font-size: 12px; }
+.badge-area { margin-top: 7px; display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; }
+.video-buttons { margin-top: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
+.video-btn { padding: 7px; font-size: 13px; border-radius: 8px; border: none; background: #343a40; color: white; cursor: pointer; }
+.pdf-btn { margin-top: 10px; padding: 8px; width: 100%; background: #17a2b8; color: white; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; }
+.hold-btn, .sold-btn { padding: 10px; margin-top: 10px; width: 100%; border-radius: 10px; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
+.hold-btn { background: #ffc107; color: black; }
+.sold-btn { background: #dc3545; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <input type="text" id="search" placeholder="Cari nama...">
+  <select id="filterCategory">
+    <option value="ALL">ALL CATEGORY</option>
+    <option value="BABY">BABY</option>
+    <option value="LANSIA">ELDERLY</option>
+    <option value="BABY+LANSIA">BABY + ELDERLY</option>
+  </select>
+  <select id="filterCabang">
+    <option value="ALL">ALL CABANG</option>
+    <option value="Jakarta">Jakarta</option>
+    <option value="Semarang">Semarang</option>
+    <option value="Surabaya">Surabaya</option>
+  </select>
+  <button onclick="loadData()">LOAD</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbwwY5-Xh2M6yIq739X_4JHBVc9DuEpI5ykjOslsPtMN6-wabJGpDXklX-9sYoJ_KO0/exec";
+
+function loadData() {
+  let search = document.getElementById("search").value.toLowerCase();
+  let category = document.getElementById("filterCategory").value;
+  let cabang = document.getElementById("filterCabang").value;
+
+  fetch(`${API}?action=getData&category=${category}&cabang=${cabang}`)
+  .then(res => res.json())
+  .then(data => {
+      if(!data.success) {
+        // jika sukses tidak ada field success (versi lama) 
+        if(Array.isArray(data)) data = {success:true, data: data};
+        else alert(data.message || "Gagal load data");
+      }
+      let items = data.data;
+      if(!items || items.length === 0) {
+        // dummy 5 card kosong
+        items = Array(5).fill({id:'', nama:'', umur:'', pengalaman:'', agama:'', foto:'', pdf:'', videoIntroduce:'', videoBaby:'', videoLansia:'', videoMasak:'', videoHousekeeping:''});
+      }
+
+      let html = "";
+      items.forEach(item => {
+        html += `
+          <div class="card">
+            <img src="${item.foto || 'https://via.placeholder.com/150'}" alt="Foto">
+            <div class="name">${item.nama || '-'}</div>
+            <div class="small">${item.umur || '-'}</div>
+            <div class="badge-area">
+              ${item.pengalaman ? (item.pengalaman.includes('NON') ? "<span class='badge-blue'>NON</span>" : "<span class='badge-red'>EXP</span>") : ''}
+              ${item.agama ? (item.agama==='MUSLIM'? "<span class='badge-blue'>MUSLIM</span>" : "<span class='badge-red'>"+item.agama+"</span>") : ''}
+            </div>
+            <button class="pdf-btn" onclick="window.open('${item.pdf || '#'}')">LIHAT PDF BIODATA</button>
+            <div class="video-buttons">
+              <button class="video-btn" onclick="openVideo('${item.videoIntroduce || ''}')">INTRODUCE</button>
+              <button class="video-btn" onclick="openVideo('${item.videoBaby || ''}')">BABY</button>
+              <button class="video-btn" onclick="openVideo('${item.videoLansia || ''}')">ELDERLY</button>
+              <button class="video-btn" onclick="openVideo('${item.videoMasak || ''}')">COOKING</button>
+              <button class="video-btn" onclick="openVideo('${item.videoHousekeeping || ''}')">HOUSEKEEPING</button>
+            </div>
+            <button class="hold-btn" onclick="hold('${item.id}')">HOLD</button>
+            <button class="sold-btn" onclick="sold('${item.id}')">SOLD</button>
+          </div>
+        `;
+      });
+      document.getElementById("grid").innerHTML = html;
+  })
+  .catch(err => alert("Error load data: " + err));
+}
+
+function openVideo(url) {
+  if (!url) return alert("Video belum tersedia");
+  window.open(url);
+}
+
+function hold(id) {
+  if(!id) return alert("ID kosong, tidak bisa HOLD");
+  fetch(`${API}?action=hold&id=${id}&user=admin`)
+  .then(r => r.json())
+  .then(res => {
+    if(res.success) alert(res.message || "Sudah di HOLD!");
+    else alert(res.message || "Gagal HOLD!");
+    loadData();
+  })
+  .catch(err => alert("Error HOLD: " + err));
+}
+
+function sold(id) {
+  if(!id) return alert("ID kosong, tidak bisa SOLD");
+  fetch(`${API}?action=sold&id=${id}&user=admin`)
+  .then(r => r.json())
+  .then(res => {
+    if(res.success) alert(res.message || "Sudah di SOLD!");
+    else alert(res.message || "Gagal SOLD!");
+    loadData();
+  })
+  .catch(err => alert("Error SOLD: " + err));
+}
+
+document.getElementById("search").addEventListener("input", loadData);
+document.getElementById("filterCategory").addEventListener("change", loadData);
+document.getElementById("filterCabang").addEventListener("change", loadData);
+
+loadData();
+</script>
+</body>
+</html>
