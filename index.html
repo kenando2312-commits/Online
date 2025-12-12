@@ -525,7 +525,7 @@
             console.error("Gagal menyimpan session:", e);
           }
           
-          // Buka tab baru langsung
+          // Buka halaman JafaBio di tab yang sama
           openJafaBio();
         }, 1500);
       } else {
@@ -697,24 +697,12 @@
       showNotification("Anda telah logout", 2000);
     }
     
+    // FUNGSI YANG TELAH DIUBAH
     function openJafaBio() {
       var url = "https://sites.google.com/view/jafabiomalaysia/jafabio";
       
-      // Coba buka di tab baru
-      try {
-        var newTab = window.open(url, "_blank");
-        
-        // Periksa apakah tab baru berhasil dibuka
-        if (newTab) {
-          showNotification("Login berhasil! JafaBio terbuka di tab baru", 2000);
-        } else {
-          // Jika gagal, tampilkan pesan error
-          showNotification("Popup diblokir. Silakan izinkan popup browser Anda", 5000);
-        }
-      } catch (e) {
-        console.error("Gagal membuka tab baru:", e);
-        showNotification("Gagal membuka tab baru. Silakan izinkan popup browser Anda", 5000);
-      }
+      // Alihkan halaman saat ini ke URL JafaBio
+      window.location.href = url;
     }
     
     // Tambahkan event listener untuk form submission
